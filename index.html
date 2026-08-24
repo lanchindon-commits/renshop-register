@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>忍店機車行 - 客戶資料登錄</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Microsoft JhengHei', sans-serif; background: #f5f5f5; color: #333; }
+  .header { background: #d32f2f; color: white; padding: 20px 16px; text-align: center; }
+  .header h1 { font-size: 20px; margin-bottom: 4px; }
+  .header p  { font-size: 13px; opacity: .85; }
+  .form-body { max-width: 600px; margin: 0 auto; padding: 16px; }
+  .section { background: white; border-radius: 10px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  .section-title { font-size: 14px; font-weight: bold; color: #d32f2f; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 14px; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; }
+  label span.req { color: #d32f2f; }
+  input, select {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 15px; color: #333;
+    background: #fafafa; transition: border .2s;
+  }
+  input:focus, select:focus { outline: none; border-color: #d32f2f; background: #fff; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .submit-btn {
+    width: 100%; padding: 16px; background: #d32f2f; color: white;
+    border: none; border-radius: 10px; font-size: 17px; font-weight: bold;
+    cursor: pointer; margin-top: 8px; transition: background .2s;
+  }
+  .submit-btn:hover { background: #b71c1c; }
+  .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+  #msg { text-align: center; padding: 20px; border-radius: 10px; margin-top: 12px; font-size: 15px; display: none; }
+  #msg.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+  #msg.error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏍 忍店機車行</h1>
+  <p>請填寫您的機車資料，方便我們提供更好的服務</p>
+</div>
+
+<div class="form-body">
+  <form id="regForm">
+
+    <div class="section">
+      <div class="section-title">🛵 車輛基本資料</div>
+      <div class="field">
+        <label>車牌號�
+    <span class="req">*</span></label>
+        <input type="text" id="car_no" placeholder="例：ABC-1234" required style="text-transform:uppercase">
+      </div>
+      <div class="field">
+        <label>車牌照片（拍照上傳，方便核對）</label>
+        <input type="file" id="platePhoto" accept="image/*" capture="environment" style="padding:8px">
+        <div id="photoPreview" style="margin-top:8px;display:none">
+          <img id="previewImg" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>廠牌</label>
+          <select id="brand" onchange="document.getElementById('brandOther').style.display=this.value==='其他'?'block':'none'">
+            <option value="">請選擇</option>
+            <option>山葉 YAMAHA</option>
+            <option>光陽 KYMCO</option>
+            <option>三陽 SYM</option>
+            <option>台鈴 SUZUKI</option>
+            <option>本田 HONDA</option>
+            <option>PGO</option>
+            <option>其他</option>
+          </select>
+          <input type="text" id="brandOther" placeholder="請輸入廠牌名稱" style="display:none;margin-top:8px">
+        </div>
+        <div class="field">
+          <label>機型／車款 <span style="color:#999;font-size:12px">如不了解可諮詢技師</span></label>
+          <input type="text" id="class" placeholder="例：勁戰六代">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>排氣量（CC）</label>
+          <input type="number" id="cc" value="125" min="50" max="1500">
+        </div>
+        <div class="field">
+          <label>行程數</label>
+          <select id="cycle">
+            <option value="4">四行程</option>
+            <option value="2">二行程</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>顏色</label>
+        <input type="text" id="color_name" placeholder="例：消光黑">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">👤 車主資料</div>
+      <div class="field">
+        <label>車主姓名 <span class="req">*</span>（填姓氏即可）</label>
+        <input type="text" id="name" placeholder="例：陳" required>
+      </div>
+      <div class="field">
+        <label>性別</label>
+        <select id="sex">
+          <option value="1">男</option>
+          <option value="2">女</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>手機號碼 <span class="req">*</span></label>
+        <input type="tel" id="mobile_phone" placeholder="0912345678" required>
+      </div>
+      <div class="field">
+        <label>市話</label>
+        <input type="tel" id="tel" placeholder="含區號，例：04-12345678">
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">確認送出</button>
+    <div id="msg"></div>
+
+  </form>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://hxzdmosganinyhtrswlj.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_AYWfHD9vBAVk4Fv1tcuEVw_RTPM71RQ'
+
+document.getElementById('regForm').addEventListener('submit', async function(e) {
+    e.preventDefault()
+    const btn = document.getElementById('submitBtn')
+    const msg = document.getElementById('msg')
+    btn.disabled = true
+    btn.textContent = '送出中...'
+    msg.style.display = 'none'
+
+    const payload = {
+        car_no:       document.getElementById('car_no').value.trim().toUpperCase(),
+        name:         document.getElementById('name').value.trim(),
+        mobile_phone: document.getElementById('mobile_phone').value.trim(),
+        tel:          document.getElementById('tel').value.trim(),
+        brand:        document.getElementById('brand').value === '其他'
+                      ? document.getElementById('brandOther').value.trim()
+                      : document.getElementById('brand').value,
+        cc:           parseInt(document.getElementById('cc').value) || 125,
+        cycle:        parseInt(document.getElementById('cycle').value) || 4,
+        color_name:   document.getElementById('color_name').value.trim(),
+        class:        document.getElementById('class').value.trim(),
+        sex:          parseInt(document.getElementById('sex').value)
+    }
+
+    try {
+        const res = await fetch(SUPABASE_URL + '/rest/v1/customer_form_submissions', {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(payload)
+        })
+        if (res.ok) {
+            msg.className = 'success'
+            msg.textContent = '✅ 資料已成功送出！感謝您填寫。'
+            document.getElementById('regForm').reset()
+        } else {
+            const err = await res.text()
+            msg.className = 'error'
+            msg.textContent = '❌ 送出失敗，請告知店員。錯誤：' + err
+        }
+    } catch(e) {
+        msg.className = 'error'
+        msg.textContent = '❌ 網路錯誤，請確認網路連線後重試。'
+    }
+
+    msg.style.display = 'block'
+    btn.disabled = false
+    btn.textContent = '確認送出'
+    msg.scrollIntoView({ behavior: 'smooth' })
+})
+</script>
+</body>
+</html>
