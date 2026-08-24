@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>忍店機車行 - 客戶資料登錄</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, 'Microsoft JhengHei', sans-serif; background: #f5f5f5; color: #333; }
@@ -49,16 +50,8 @@
     <div class="section">
       <div class="section-title">🛵 車輛基本資料</div>
       <div class="field">
-        <label>車牌號�
-    <span class="req">*</span></label>
+        <label>車牌號碼 <span class="req">*</span></label>
         <input type="text" id="car_no" placeholder="例：ABC-1234" required style="text-transform:uppercase">
-      </div>
-      <div class="field">
-        <label>車牌照片（拍照上傳，方便核對）</label>
-        <input type="file" id="platePhoto" accept="image/*" capture="environment" style="padding:8px">
-        <div id="photoPreview" style="margin-top:8px;display:none">
-          <img id="previewImg" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">
-        </div>
       </div>
       <div class="row2">
         <div class="field">
@@ -131,6 +124,30 @@
 <script>
 const SUPABASE_URL = 'https://hxzdmosganinyhtrswlj.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_AYWfHD9vBAVk4Fv1tcuEVw_RTPM71RQ'
+const LIFF_ID     = '2009551033-SAcB0ZjL'
+
+let lineUserId      = ''
+let lineDisplayName = ''
+
+// LIFF 初始化：在 LINE 環境中取得 userId
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID })
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile()
+      lineUserId      = profile.userId
+      lineDisplayName = profile.displayName
+    } else if (!liff.isInClient()) {
+      // 外部瀏覽器尚未登入 → 導向 LINE 登入
+      liff.login({ redirectUri: location.href })
+    }
+  } catch(e) {
+    // 不在 LINE 環境也可正常填表，不影響送出
+    console.log('LIFF init:', e.message)
+  }
+}
+
+initLiff()
 
 document.getElementById('regForm').addEventListener('submit', async function(e) {
     e.preventDefault()
@@ -140,19 +157,22 @@ document.getElementById('regForm').addEventListener('submit', async function(e) 
     btn.textContent = '送出中...'
     msg.style.display = 'none'
 
+    const brandVal = document.getElementById('brand').value
     const payload = {
-        car_no:       document.getElementById('car_no').value.trim().toUpperCase(),
-        name:         document.getElementById('name').value.trim(),
-        mobile_phone: document.getElementById('mobile_phone').value.trim(),
-        tel:          document.getElementById('tel').value.trim(),
-        brand:        document.getElementById('brand').value === '其他'
-                      ? document.getElementById('brandOther').value.trim()
-                      : document.getElementById('brand').value,
-        cc:           parseInt(document.getElementById('cc').value) || 125,
-        cycle:        parseInt(document.getElementById('cycle').value) || 4,
-        color_name:   document.getElementById('color_name').value.trim(),
-        class:        document.getElementById('class').value.trim(),
-        sex:          parseInt(document.getElementById('sex').value)
+        car_no:            document.getElementById('car_no').value.trim().toUpperCase(),
+        name:              document.getElementById('name').value.trim(),
+        mobile_phone:      document.getElementById('mobile_phone').value.trim(),
+        tel:               document.getElementById('tel').value.trim(),
+        brand:             brandVal === '其他'
+                           ? document.getElementById('brandOther').value.trim()
+                           : brandVal,
+        cc:                parseInt(document.getElementById('cc').value) || 125,
+        cycle:             parseInt(document.getElementById('cycle').value) || 4,
+        color_name:        document.getElementById('color_name').value.trim(),
+        class:             document.getElementById('class').value.trim(),
+        sex:               parseInt(document.getElementById('sex').value),
+        line_user_id:      lineUserId,
+        line_display_name: lineDisplayName
     }
 
     try {
@@ -168,8 +188,12 @@ document.getElementById('regForm').addEventListener('submit', async function(e) 
         })
         if (res.ok) {
             msg.className = 'success'
-            msg.textContent = '✅ 資料已成功送出！感謝您填寫。'
+            msg.innerHTML = '✅ 資料已成功送出！<br>感謝您填寫，我們將盡快確認。'
             document.getElementById('regForm').reset()
+            // 在 LINE 環境中可關閉視窗
+            if (typeof liff !== 'undefined' && liff.isInClient()) {
+              setTimeout(() => liff.closeWindow(), 2000)
+            }
         } else {
             const err = await res.text()
             msg.className = 'error'
