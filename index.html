@@ -51,7 +51,15 @@
       <div class="section-title">🛵 車輛基本資料</div>
       <div class="field">
         <label>車牌號碼 <span class="req">*</span></label>
-        <input type="text" id="car_no" placeholder="例：ABC-1234" required style="text-transform:uppercase">
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="text" id="car_no_a" placeholder="ABC" maxlength="4"
+            style="text-transform:uppercase;text-align:center;flex:1"
+            oninput="this.value=this.value.toUpperCase()">
+          <span style="font-size:22px;font-weight:bold;color:#555">－</span>
+          <input type="text" id="car_no_b" placeholder="1234" maxlength="4"
+            style="text-transform:uppercase;text-align:center;flex:1"
+            oninput="this.value=this.value.toUpperCase()">
+        </div>
       </div>
       <div class="row2">
         <div class="field">
@@ -157,9 +165,20 @@ document.getElementById('regForm').addEventListener('submit', async function(e) 
     btn.textContent = '送出中...'
     msg.style.display = 'none'
 
+    const carA = document.getElementById('car_no_a').value.trim().toUpperCase()
+    const carB = document.getElementById('car_no_b').value.trim().toUpperCase()
+    if (!carA || !carB) {
+        msg.className = 'error'
+        msg.textContent = '❌ 請填寫完整車牌號碼'
+        msg.style.display = 'block'
+        btn.disabled = false
+        btn.textContent = '確認送出'
+        return
+    }
+    const carNo = carA + '-' + carB
     const brandVal = document.getElementById('brand').value
     const payload = {
-        car_no:            document.getElementById('car_no').value.trim().toUpperCase(),
+        car_no:            carNo,
         name:              document.getElementById('name').value.trim(),
         mobile_phone:      document.getElementById('mobile_phone').value.trim(),
         tel:               document.getElementById('tel').value.trim(),
