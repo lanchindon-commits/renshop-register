@@ -64,17 +64,20 @@
       <div class="row2">
         <div class="field">
           <label>廠牌</label>
-          <select id="brand" onchange="document.getElementById('brandOther').style.display=this.value==='其他'?'block':'none'">
-            <option value="">請選擇</option>
-            <option>山葉 YAMAHA</option>
-            <option>光陽 KYMCO</option>
-            <option>三陽 SYM</option>
-            <option>台鈴 SUZUKI</option>
-            <option>本田 HONDA</option>
-            <option>PGO</option>
-            <option>其他</option>
+          <select id="brand">
+            <option value="0" data-name="">請選擇</option>
+            <option value="2" data-name="山葉">山葉 YAMAHA</option>
+            <option value="3" data-name="光陽">光陽 KYMCO</option>
+            <option value="1" data-name="三陽">三陽 SYM</option>
+            <option value="6" data-name="台鈴">台鈴 SUZUKI</option>
+            <option value="11" data-name="HONDA">本田 HONDA</option>
+            <option value="8" data-name="AEON">AEON</option>
+            <option value="12" data-name="GOGORO">GOGORO</option>
+            <option value="4" data-name="偉士牌">偉士牌</option>
+            <option value="5" data-name="比雅久">比雅久</option>
+            <option value="7" data-name="哈特佛">哈特佛</option>
+            <option value="0" data-name="其它">其他</option>
           </select>
-          <input type="text" id="brandOther" placeholder="請輸入廠牌名稱" style="display:none;margin-top:8px">
         </div>
         <div class="field">
           <label>機型／車款 <span style="color:#999;font-size:12px">如不了解可諮詢技師</span></label>
@@ -176,15 +179,16 @@ document.getElementById('regForm').addEventListener('submit', async function(e) 
         return
     }
     const carNo = carA + '-' + carB
-    const brandVal = document.getElementById('brand').value
+    const brandSel = document.getElementById('brand')
+    const brandVenNo = parseInt(brandSel.value) || 0
+    const brandName = brandSel.options[brandSel.selectedIndex].getAttribute('data-name') || ''
     const payload = {
         car_no:            carNo,
         name:              document.getElementById('name').value.trim(),
         mobile_phone:      document.getElementById('mobile_phone').value.trim(),
         tel:               document.getElementById('tel').value.trim(),
-        brand:             brandVal === '其他'
-                           ? document.getElementById('brandOther').value.trim()
-                           : brandVal,
+        brand:             brandName,
+        ven_no:            brandVenNo,
         cc:                parseInt(document.getElementById('cc').value) || 125,
         cycle:             parseInt(document.getElementById('cycle').value) || 4,
         color_name:        document.getElementById('color_name').value.trim(),
