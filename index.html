@@ -221,6 +221,24 @@ document.getElementById('regForm').addEventListener('submit', async function(e) 
             msg.className = 'success'
             msg.innerHTML = '✅ 資料已成功送出！<br>感謝您填寫，我們將盡快確認。'
             document.getElementById('regForm').reset()
+
+            // 同步把 LINE 身份綁定進 customers 表（供完修通知等功能查詢使用）
+            if (lineUserId) {
+                fetch(SUPABASE_URL + '/rest/v1/rpc/bind_line_user', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        p_car_no: carNo,
+                        p_line_user_id: lineUserId,
+                        p_line_display_name: lineDisplayName
+                    })
+                }).catch(function(e) { console.log('bind_line_user failed:', e.message) })
+            }
+
             // 在 LINE 環境中可關閉視窗
             if (typeof liff !== 'undefined' && liff.isInClient()) {
               setTimeout(() => liff.closeWindow(), 2000)
