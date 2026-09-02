@@ -158,15 +158,23 @@ async function initLiff() {
   }
 }
 
-initLiff()
+const liffReadyPromise = initLiff()
 
 document.getElementById('regForm').addEventListener('submit', async function(e) {
     e.preventDefault()
     const btn = document.getElementById('submitBtn')
     const msg = document.getElementById('msg')
     btn.disabled = true
-    btn.textContent = '送出中...'
+    btn.textContent = '確認身份中...'
     msg.style.display = 'none'
+
+    // 確保 LIFF 身份確認流程（含加好友）已經跑完，最多等 5 秒，避免卡死
+    await Promise.race([
+        liffReadyPromise,
+        new Promise(resolve => setTimeout(resolve, 5000))
+    ])
+
+    btn.textContent = '送出中...'
 
     const carA = document.getElementById('car_no_a').value.trim().toUpperCase()
     const carB = document.getElementById('car_no_b').value.trim().toUpperCase()
