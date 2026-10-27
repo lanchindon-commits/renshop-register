@@ -35,6 +35,18 @@
   #msg { text-align: center; padding: 20px; border-radius: 10px; margin-top: 12px; font-size: 15px; display: none; }
   #msg.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
   #msg.error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+  #bindBox { display: none; margin-top: 12px; padding: 16px; border-radius: 10px; font-size: 15px; line-height: 1.6; }
+  #bindBox.note    { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; text-align: center; }
+  #bindBox.confirm { background: #fff8e1; color: #5d4037; border: 1px solid #ffe082; }
+  #bindBox .bind-title { font-weight: bold; margin-bottom: 10px; }
+  #bindBox button {
+    display: block; width: 100%; padding: 13px; margin-top: 8px; border-radius: 8px;
+    font-size: 15px; font-weight: bold; cursor: pointer; border: 1px solid #d32f2f;
+    background: #d32f2f; color: #fff;
+  }
+  #bindBox button.secondary { background: #fff; color: #d32f2f; }
+  #bindBox button.ghost { background: #fff; color: #777; border-color: #ccc; font-weight: normal; }
+  #bindBox button:disabled { opacity: .5; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -128,6 +140,7 @@
 
     <button type="submit" class="submit-btn" id="submitBtn">確認送出</button>
     <div id="msg"></div>
+    <div id="bindBox"></div>
 
   </form>
 </div>
@@ -159,6 +172,106 @@ async function initLiff() {
 }
 
 const liffReadyPromise = initLiff()
+
+// ---- LINE 車牌綁定（送出建檔資料「之後」才執行；失敗不影響建檔） ----
+function bindRpc(carNo, action, oldCar) {
+    const body = { p_car_no: carNo, p_line_user_id: lineUserId, p_line_display_name: lineDisplayName }
+    if (action) body.p_confirm_action = action
+    if (oldCar) body.p_old_car_no = oldCar
+    return fetch(SUPABASE_URL + '/rest/v1/rpc/bind_line_user', {
+        method: 'POST',
+        headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    }).then(function(r) { return r.json() })
+}
+
+function closeLater(ms) {
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+        setTimeout(function() { liff.closeWindow() }, ms)
+    }
+}
+
+function showBindNote(text) {
+    const box = document.getElementById('bindBox')
+    box.className = 'note'
+    box.textContent = text
+    box.style.display = 'block'
+}
+
+function bindResultText(r, carNo) {
+    if (r && r.success) return '✅ 已把 ' + carNo + ' 綁定到您的 LINE，之後維修進度會通知您。'
+    if (r && r.error === 'conflict_bound_to_other') return '⚠️ 您的資料已送出，但這台車已有其他 LINE 帳號綁定，請告知店員協助處理。'
+    return '⚠️ 您的資料已送出，但 LINE 綁定未完成，請告知店員協助處理。'
+}
+
+function showBindConfirm(carNo, existingCars) {
+    const box = document.getElementById('bindBox')
+    box.className = 'confirm'
+    box.innerHTML = ''
+    const title = document.createElement('div')
+    title.className = 'bind-title'
+    title.textContent = '您的 LINE 目前已綁定：' + existingCars.join('、')
+    box.appendChild(title)
+    const ask = document.createElement('div')
+    ask.textContent = '這台 ' + carNo + ' 要怎麼處理？'
+    box.appendChild(ask)
+
+    function addBtn(label, cls, handler) {
+        const b = document.createElement('button')
+        b.type = 'button'
+        b.textContent = label
+        if (cls) b.className = cls
+        b.addEventListener('click', function() {
+            box.querySelectorAll('button').forEach(function(x) { x.disabled = true })
+            handler(b)
+        })
+        box.appendChild(b)
+    }
+    function finish(r) {
+        showBindNote(bindResultText(r, carNo))
+        closeLater(3000)
+    }
+    function fail() {
+        box.querySelectorAll('button').forEach(function(x) { x.disabled = false })
+        const err = document.createElement('div')
+        err.style.cssText = 'color:#c62828;margin-top:8px'
+        err.textContent = '網路錯誤，請再按一次。'
+        box.appendChild(err)
+    }
+
+    addBtn('➕ 新增這台車（原本的車也保留）', '', function() {
+        bindRpc(carNo, 'add').then(finish).catch(fail)
+    })
+    existingCars.forEach(function(old) {
+        addBtn('🔄 換成這台新車（解除 ' + old + '）', 'secondary', function() {
+            bindRpc(carNo, 'replace', old).then(finish).catch(fail)
+        })
+    })
+    addBtn('先不綁定', 'ghost', function() {
+        showBindNote('好的，您的資料已送出。如需綁定 LINE 通知，請告知店員。')
+        closeLater(3000)
+    })
+    box.style.display = 'block'
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+async function handleBind(carNo) {
+    try {
+        const r = await bindRpc(carNo)
+        if (r && r.need_confirm) {
+            showBindConfirm(carNo, r.existing_cars || [])
+            return
+        }
+        showBindNote(bindResultText(r, carNo))
+    } catch(e) {
+        console.log('bind_line_user failed:', e.message)
+    }
+    closeLater(3000)
+}
 
 document.getElementById('regForm').addEventListener('submit', async function(e) {
     e.preventDefault()
@@ -223,25 +336,11 @@ document.getElementById('regForm').addEventListener('submit', async function(e) 
             document.getElementById('regForm').reset()
 
             // 同步把 LINE 身份綁定進 customers 表（供完修通知等功能查詢使用）
+            // 已有其他車的客人會跳出「新增 / 換成新車」確認；確認前不關閉視窗
             if (lineUserId) {
-                fetch(SUPABASE_URL + '/rest/v1/rpc/bind_line_user', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': 'Bearer ' + SUPABASE_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        p_car_no: carNo,
-                        p_line_user_id: lineUserId,
-                        p_line_display_name: lineDisplayName
-                    })
-                }).catch(function(e) { console.log('bind_line_user failed:', e.message) })
-            }
-
-            // 在 LINE 環境中可關閉視窗
-            if (typeof liff !== 'undefined' && liff.isInClient()) {
-              setTimeout(() => liff.closeWindow(), 2000)
+                handleBind(carNo)
+            } else {
+                closeLater(2000)
             }
         } else {
             const err = await res.text()
