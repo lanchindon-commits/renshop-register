@@ -140,7 +140,32 @@ const LIFF_ID     = '2009551033-SAcB0ZjL'
 let lineUserId      = ''
 let lineDisplayName = ''
 
-// LIFF 初始化：在 LINE 環境中取得 userId
+// 自動帶入欄位
+function prefillForm(d) {
+  if (d.car_no) {
+    const parts = d.car_no.split('-')
+    document.getElementById('car_no_a').value = parts[0] || ''
+    document.getElementById('car_no_b').value = parts[1] || ''
+  }
+  if (d.name)         document.getElementById('name').value = d.name
+  if (d.mobile_phone) document.getElementById('mobile_phone').value = d.mobile_phone
+  if (d.tel)          document.getElementById('tel').value = d.tel
+  if (d.color_name)   document.getElementById('color_name').value = d.color_name
+  if (d.class)        document.getElementById('class').value = d.class
+  if (d.cc)           document.getElementById('cc').value = d.cc
+  if (d.cycle)        document.getElementById('cycle').value = d.cycle
+  if (d.sex)          document.getElementById('sex').value = d.sex
+  if (d.ven_no !== undefined && d.ven_no !== null) {
+    const sel = document.getElementById('brand')
+    for (let i = 0; i < sel.options.length; i++) {
+      if (parseInt(sel.options[i].value) === parseInt(d.ven_no)) {
+        sel.selectedIndex = i; break
+      }
+    }
+  }
+}
+
+// LIFF 初始化：在 LINE 環境中取得 userId，並查詢舊資料
 async function initLiff() {
   try {
     await liff.init({ liffId: LIFF_ID })
@@ -148,12 +173,18 @@ async function initLiff() {
       const profile = await liff.getProfile()
       lineUserId      = profile.userId
       lineDisplayName = profile.displayName
+      // 查詢舊資料自動帶入
+      try {
+        const res = await fetch(SUPABASE_URL + '/rest/v1/customer_form_submissions?line_user_id=eq.' + lineUserId + '&order=id.desc&limit=1', {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        })
+        const rows = await res.json()
+        if (rows && rows.length > 0) prefillForm(rows[0])
+      } catch(e) { console.log('prefill error:', e.message) }
     } else if (!liff.isInClient()) {
-      // 外部瀏覽器尚未登入 → 導向 LINE 登入
       liff.login({ redirectUri: location.href })
     }
   } catch(e) {
-    // 不在 LINE 環境也可正常填表，不影響送出
     console.log('LIFF init:', e.message)
   }
 }
