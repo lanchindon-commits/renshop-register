@@ -173,6 +173,25 @@ async function initLiff() {
 
 const liffReadyPromise = initLiff()
 
+// ---- 從「抽取號碼牌」頁帶過來：自動帶入車牌、填完回到取號頁 ----
+let RETURN_URL = ''
+let LAST_CAR = ''
+liffReadyPromise.then(function() {
+    const q = new URLSearchParams(location.search)
+    const car = (q.get('car_no') || '').trim().toUpperCase()
+    if (car) {
+        const parts = car.split('-')
+        if (parts.length === 2) {
+            document.getElementById('car_no_a').value = parts[0]
+            document.getElementById('car_no_b').value = parts[1]
+        } else {
+            document.getElementById('car_no_a').value = car
+        }
+    }
+    const ret = q.get('return') || ''
+    if (/^https:\/\/liff\.line\.me\//.test(ret)) RETURN_URL = ret
+})
+
 // ---- LINE 車牌綁定（送出建檔資料「之後」才執行；失敗不影響建檔） ----
 function bindRpc(carNo, action, oldCar) {
     const body = { p_car_no: carNo, p_line_user_id: lineUserId, p_line_display_name: lineDisplayName }
@@ -190,6 +209,11 @@ function bindRpc(carNo, action, oldCar) {
 }
 
 function closeLater(ms) {
+    if (RETURN_URL) {
+        const sep = RETURN_URL.indexOf('?') > -1 ? '&' : '?'
+        setTimeout(function() { location.href = RETURN_URL + sep + 'car_no=' + encodeURIComponent(LAST_CAR) }, ms)
+        return
+    }
     if (typeof liff !== 'undefined' && liff.isInClient()) {
         setTimeout(function() { liff.closeWindow() }, ms)
     }
@@ -300,6 +324,7 @@ document.getElementById('regForm').addEventListener('submit', async function(e) 
         return
     }
     const carNo = carA + '-' + carB
+    LAST_CAR = carNo
     const brandSel = document.getElementById('brand')
     const brandVenNo = parseInt(brandSel.value) || 0
     const brandName = brandSel.options[brandSel.selectedIndex].getAttribute('data-name') || ''
